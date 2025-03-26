@@ -11,6 +11,7 @@ export enum CardValues {
 interface GameState {
   playerScore: number;
   cpuScore: number;
+  draws: number;
   playerCurrentChoice: CardValues | null;
   cpuCurrentChoice: CardValues | null;
   longestWinningStreak: number;
@@ -38,6 +39,7 @@ export const GameStateContext = createContext<GameStateContextType | undefined>(
 const defaultGameState: GameState = {
   playerScore: 0,
   cpuScore: 0,
+  draws: 0,
   playerCurrentChoice: null,
   cpuCurrentChoice: null,
   longestWinningStreak: 0,
@@ -77,6 +79,10 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
       historicalResults: newHistoricalResults.slice(-10),
     }));
   }
+
+  const incrementCpuScore = () => setGameState((prevState) => ({ ...prevState, cpuScore: prevState.cpuScore + 1 }));
+  const incrementPlayerScore = () => setGameState((prevState) => ({ ...prevState, playerScore: prevState.playerScore + 1 }));
+  const incrementDraws = () => setGameState((prevState) => ({ ...prevState, draws: prevState.draws + 1 }));
 
   return (
     <GameStateContext.Provider
