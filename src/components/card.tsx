@@ -5,12 +5,16 @@ import ScissorsLogo from '../assets/scissors.webp'
 import LizardLogo from '../assets/lizard.webp'
 import SpockLogo from '../assets/spock.webp'
 
-type FaceDownCardProps = {
+type HiddenCardProps = {
   className?: string
   small?: boolean
 }
 type CardProps = {
   value: CardValues
+  onClick?: (value: CardValues) => void
+  className?: string
+  isActive?: boolean
+  selected?: boolean
 }
 
 const cardImages = {
@@ -23,17 +27,21 @@ const cardImages = {
 
 const cardStyle = 'flex flex-col justify-center items-center w-24 aspect-4/5 bg-gray-100 rounded-lg md:rounded-xl'
 
-export const HiddenCard = ({ className, small }: FaceDownCardProps) => {
+export const HiddenCard = ({ className='', small }: HiddenCardProps) => {
   return (
-    <div className={`${cardStyle} bg-red-300 ${small ? '!w-14' : ''} ${className ? className : ''}`} />
+    <div className={`${cardStyle} bg-red-300 ${small ? '!w-14' : ''} ${className}`} />
   )
 }
 
-export const Card = ({ value }: CardProps) => {
+export const Card = ({ value, onClick, className='', isActive, selected }: CardProps) => {
+  const activeCardClass = 'cursor-pointer hover:!bg-blue-400' 
+
   return (
-    <div className={cardStyle}>
+    <div
+      className={`${cardStyle} ${selected? '!bg-blue-400': ''} ${isActive ? activeCardClass : ''} ${className}`}
+      onClick={() => onClick && onClick(value)}
+    >
       <img src={cardImages[value]} alt={`${value} card`} className='w-3/4' />
     </div>
-
   )
 }

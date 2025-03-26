@@ -9,6 +9,7 @@ export enum CardValues {
 }
 
 interface GameState {
+  playerUsername: string | null;
   playerScore: number;
   cpuScore: number;
   draws: number;
@@ -25,6 +26,7 @@ interface GameState {
 
 interface GameStateContextType {
   gameState: GameState;
+  setPlayerUsername: (username: string) => void;
   setPlayerChoice: (choice: CardValues) => void;
   setCpuChoice: (choice: CardValues) => void;
   resetCurrentChoices: () => void;
@@ -37,6 +39,7 @@ interface GameStateContextType {
 export const GameStateContext = createContext<GameStateContextType | undefined>(undefined);
 
 const defaultGameState: GameState = {
+  playerUsername: null,
   playerScore: 0,
   cpuScore: 0,
   draws: 0,
@@ -57,7 +60,12 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('gameState', JSON.stringify(gameState));
   }, [gameState]);
 
-  const resetGameState = () => setGameState(defaultGameState);
+  const resetGameState = () => {
+    setGameState(defaultGameState);
+    localStorage.removeItem('gameState');
+  }
+
+  const setPlayerUsername = (username: string) => setGameState((prevState) => ({ ...prevState, playerUsername: username }));
 
   const setPlayerChoice = (choice: CardValues) => setGameState((prevState) => ({ ...prevState, playerCurrentChoice: choice }));
 
@@ -88,6 +96,7 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
     <GameStateContext.Provider
       value={{
         gameState,
+        setPlayerUsername,
         setPlayerChoice,
         setCpuChoice,
         resetCurrentChoices,
