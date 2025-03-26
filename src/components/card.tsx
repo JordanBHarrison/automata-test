@@ -25,7 +25,7 @@ const cardImages = {
   [CardValues.SPOCK]: SpockLogo,
 }
 
-const cardStyle = 'flex flex-col justify-center items-center w-24 aspect-4/5 bg-gray-100 rounded-lg md:rounded-xl'
+const cardStyle = 'flex flex-col border-2 border-transparent justify-center items-center w-24 aspect-4/5 bg-gray-100 rounded-lg md:rounded-xl'
 
 export const HiddenCard = ({ className='', small }: HiddenCardProps) => {
   return (

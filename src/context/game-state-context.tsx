@@ -8,6 +8,8 @@ export enum CardValues {
   SPOCK = 'spock',
 }
 
+type RoundWinner = 'player' | 'cpu' | 'draw';
+
 interface GameState {
   playerUsername: string | null;
   playerScore: number;
@@ -15,6 +17,8 @@ interface GameState {
   draws: number;
   playerCurrentChoice: CardValues | null;
   cpuCurrentChoice: CardValues | null;
+  currentRoundWinner: RoundWinner | null;
+  currentStreak: number;
   longestWinningStreak: number;
   isRoundEnded: boolean;
   historicalResults: {
@@ -29,11 +33,17 @@ interface GameStateContextType {
   setPlayerUsername: (username: string) => void;
   setPlayerChoice: (choice: CardValues) => void;
   setCpuChoice: (choice: CardValues) => void;
-  resetCurrentChoices: () => void;
+  setCurrentSteak: (streak: number) => void;
   setLongestWinningStreak: (streak: number) => void;
   setIsRoundEnded: (isEnded: boolean) => void;
+  setRoundWinner: (winner: RoundWinner) => void;
+  startNextRound: () => void;
   resetScore: () => void;
   resetGameState: () => void;
+  incrementCpuScore: () => void;
+  incrementPlayerScore: () => void;
+  incrementDraws: () => void;
+  addHistoricalResult: (playerChoice: CardValues, cpuChoice: CardValues, won: boolean) => void;
 }
 
 export const GameStateContext = createContext<GameStateContextType | undefined>(undefined);
@@ -45,6 +55,8 @@ const defaultGameState: GameState = {
   draws: 0,
   playerCurrentChoice: null,
   cpuCurrentChoice: null,
+  currentRoundWinner: null,
+  currentStreak: 0,
   longestWinningStreak: 0,
   isRoundEnded: false,
   historicalResults: [],
@@ -61,8 +73,8 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
   }, [gameState]);
 
   const resetGameState = () => {
-    setGameState(defaultGameState);
     localStorage.removeItem('gameState');
+    setGameState(defaultGameState);
   }
 
   const setPlayerUsername = (username: string) => setGameState((prevState) => ({ ...prevState, playerUsername: username }));
@@ -73,11 +85,26 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
 
   const resetCurrentChoices = () => setGameState((prevState) => ({ ...prevState, playerCurrentChoice: null, cpuCurrentChoice: null }));
 
+  const setCurrentSteak = (streak: number) => {
+    setGameState((prevState) => ({ ...prevState, currentStreak: streak }));
+    if (streak > gameState.longestWinningStreak) setLongestWinningStreak(streak);
+  }
+
   const setLongestWinningStreak = (streak: number) => setGameState((prevState) => ({ ...prevState, longestWinningStreak: streak }));
 
   const setIsRoundEnded = (isEnded: boolean) => setGameState((prevState) => ({ ...prevState, isRoundEnded: isEnded }));
 
-  const resetScore = () => setGameState((prevState) => ({ ...prevState, playerScore: 0, cpuScore: 0 }));
+  const setRoundWinner = (winner: RoundWinner) => setGameState((prevState) => ({ ...prevState, currentRoundWinner: winner }));
+  const clearRoundWinner = () => setGameState((prevState) => ({ ...prevState, currentRoundWinner: null }));
+
+  const startNextRound = () => {
+    // Add result to historical results
+    clearRoundWinner();
+    resetCurrentChoices();
+    setIsRoundEnded(false);
+  }
+
+  const resetScore = () => setGameState((prevState) => ({ ...prevState, playerScore: 0, cpuScore: 0, draws: 0 }));
 
   const addHistoricalResult = (playerChoice: CardValues, cpuChoice: CardValues, won: boolean ) => {
     const newHistoricalResults = [...gameState.historicalResults]
@@ -99,11 +126,17 @@ export const GameStateProvider = ({ children }: { children: ReactNode }) => {
         setPlayerUsername,
         setPlayerChoice,
         setCpuChoice,
-        resetCurrentChoices,
+        setCurrentSteak,
         setLongestWinningStreak,
+        setRoundWinner,
         setIsRoundEnded,
+        startNextRound,
         resetScore,
-        resetGameState
+        resetGameState,
+        incrementCpuScore,
+        incrementPlayerScore,
+        incrementDraws,
+        addHistoricalResult,
       }}
     >
       {children}

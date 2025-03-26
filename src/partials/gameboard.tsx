@@ -4,34 +4,96 @@ import { CardValues } from '../context/game-state-context';
 import UsernamePanel from '../components/username-panel';
 import useGameState from '../hooks/useGameState';
 
-type GameboardProps = {
+const WINNING_COMBOS: Record<CardValues, Record<string, string>> = {
+  [CardValues.ROCK]: {
+    [CardValues.SCISSORS]: 'breaks',
+    [CardValues.LIZARD]: 'crushes',
+  },
+  [CardValues.PAPER]: {
+    [CardValues.ROCK]: 'covers',
+    [CardValues.SPOCK]: 'disproves',
+  },
+  [CardValues.SCISSORS]: {
+    [CardValues.PAPER]: 'cut',
+    [CardValues.LIZARD]: 'decapitates',
+  },
+  [CardValues.LIZARD]: {
+    [CardValues.SPOCK]: 'poisons',
+    [CardValues.PAPER]: 'eats',
+  },
+  [CardValues.SPOCK]: {
+    [CardValues.SCISSORS]: 'smashes',
+    [CardValues.ROCK]: 'vaporizes',
+  },
 }
+
 const Gameboard = () => {
-  const { gameState, setPlayerUsername, setPlayerChoice, setIsRoundEnded  } = useGameState();
-  const { playerUsername, isRoundEnded, playerCurrentChoice, cpuCurrentChoice } = gameState;
+  const {
+    gameState,
+    setPlayerUsername,
+    setPlayerChoice,
+    setCpuChoice,
+    setCurrentSteak,
+    setIsRoundEnded,
+    setRoundWinner,
+    startNextRound,
+    incrementCpuScore,
+    incrementPlayerScore,
+    incrementDraws,
+  } = useGameState();
+  const { playerUsername, isRoundEnded, playerCurrentChoice, cpuCurrentChoice, currentRoundWinner, currentStreak } = gameState;
 
   useEffect(() => {
-  if (playerCurrentChoice && !isRoundEnded) {
-      // CPU choice logic
-      makeCpuChoice();
-      determineWinner();
-    }
+  if (playerCurrentChoice && !isRoundEnded) makeCpuChoice();
   }, [playerCurrentChoice])
+
+  useEffect(() => {
+    if (playerCurrentChoice && cpuCurrentChoice) determineWinner();
+  }, [cpuCurrentChoice])
 
   const makeCpuChoice = () => {
     const choices = Object.values(CardValues);
     const randomIndex = Math.floor(Math.random() * choices.length);
-    return choices[randomIndex];
+    const randomChoice = choices[randomIndex];
+    setCpuChoice(randomChoice);
   }
 
   const determineWinner = () => {
+    const playerChoice = playerCurrentChoice!;
+    const cpuChoice = cpuCurrentChoice!;
+    if (playerChoice === cpuChoice) {
+      // Draw
+      if (!currentRoundWinner) incrementDraws();
+      setRoundWinner('draw');
+    } else if (Object.keys(WINNING_COMBOS[playerChoice]).includes(cpuChoice)) {
+      // Player wins
+      if (!currentRoundWinner) {
+        incrementPlayerScore();
+        setCurrentSteak(currentStreak + 1);
+      }
+      setRoundWinner('player');
+    } else {
+      // CPU wins
+      if (!currentRoundWinner) {
+        incrementCpuScore();
+        setCurrentSteak(0);
+      }
+      setRoundWinner('cpu');
+    }
+    setIsRoundEnded(true);
   }
 
   return (
-    <div className='flex flex-col w-full max-w-[800px] mx-auto bg-amber-300'>
+    <div className='flex flex-col w-full max-w-[800px] mx-auto bg-amber-300 gap-20'>
       {!playerUsername && <NewUserModal setPlayerUsername={setPlayerUsername} />}
       <OpponentArea />
-      <MidBoard playerChoice={playerCurrentChoice} cpuChoice={cpuCurrentChoice} />
+      <MidBoard
+        playerChoice={playerCurrentChoice}
+        cpuChoice={cpuCurrentChoice}
+        isRoundEnded={isRoundEnded}
+        startNextRound={startNextRound}
+        currentRoundWinner={currentRoundWinner}
+      />
       <PlayerArea
         username={gameState.playerUsername}
         setPlayerChoice={choice => setPlayerChoice(choice)}
@@ -45,7 +107,7 @@ const Gameboard = () => {
 const OpponentArea = () => {
   return (
     <section id='opponent' className='flex flex-row items-center justify-center gap-4'>
-      <div className='flex flex-row justify-center px-2 gap-3 bg-gray-300 rounded-b-xl overflow-hidden'>
+      <div className='flex flex-row justify-center px-2 gap-3 bg-gray-300 rounded-b-xl overflow-hidden self-start'>
         <HiddenCard className='transform -translate-y-1/3' small />
         <HiddenCard className='transform -translate-y-1/3' small />
         <HiddenCard className='transform -translate-y-1/3' small />
@@ -58,15 +120,44 @@ const OpponentArea = () => {
 }
 
 type MidBoardProps = {
+  isRoundEnded: boolean
   playerChoice: CardValues | null
   cpuChoice: CardValues | null
+  startNextRound: () => void
+  currentRoundWinner: string | null
 }
 
-const MidBoard = ({ playerChoice, cpuChoice }: MidBoardProps) => {
+const MidBoard = ({ playerChoice, cpuChoice, isRoundEnded, startNextRound, currentRoundWinner }: MidBoardProps) => {
+  let promptCopy
+  let adjective
+
+  switch (currentRoundWinner) {
+    case 'player':
+      adjective = WINNING_COMBOS[playerChoice!][cpuChoice!];
+      promptCopy = `${playerChoice!.toUpperCase()} ${adjective} ${cpuChoice!.toUpperCase()}`;
+      break;
+    case 'cpu':
+      adjective = WINNING_COMBOS[cpuChoice!][playerChoice!];
+      promptCopy = `${cpuChoice!.toUpperCase()} ${adjective} ${playerChoice!.toUpperCase()}`;
+      break;
+    case 'draw':
+      promptCopy = 'It\'s a draw';
+      break;
+    default:
+      promptCopy = 'Make your selection';
+  }
+
+  const cardPlaceholderStyle = 'aspect-4/5 border-2 border-dashed w-24 rounded-xl'
   return (
-    <section id='mid-board' className='flex flex-row justify-center gap-4 my-16'>
-      {playerChoice ? <Card value={playerChoice} /> : <div className={`aspect-4/5 border-2 border-dashed w-24 rounded-xl`} />}
-      {cpuChoice ? <Card value={cpuChoice} /> : <div className={`aspect-4/5 border-2 border-dashed w-24 rounded-xl`} />}
+    <section id='mid-board' className='relative flex flex-col items-center gap-4'>
+      <div className='flex items-center justify-center h-8 min-w-[200px] text-gray-700 bg-white/40 p-2 rounded-xl'>
+        <span className='text-sm'>{promptCopy}</span>
+      </div>
+      <div className='flex flex-row justify-center gap-4'>
+        {playerChoice ? <Card value={playerChoice} className={currentRoundWinner === 'player' ? '!border-blue-400' : ''} /> : <div className={cardPlaceholderStyle} />}
+        {cpuChoice ? <Card value={cpuChoice} className={currentRoundWinner === 'cpu' ? '!border-blue-400' : ''} /> : <div className={cardPlaceholderStyle} />}
+      </div>
+      {isRoundEnded && <button className='absolute -bottom-4 transform translate-y-full' onClick={startNextRound}>Next round</button>}
     </section>
   )
 }
@@ -84,12 +175,11 @@ const PlayerArea = ({ username, currentChoice, setPlayerChoice, isRoundEnded }: 
     setPlayerChoice(value);
   }
 
-
   return (
     <section id='player' className='flex flex-row items-center gap-4'>
-      {username && <UsernamePanel username={username} className='hidden md:block'/>}
+      <UsernamePanel username={username || 'Player 1'} className='hidden md:block'/>
       <div className='relative flex flex-row justify-center gap-3 bg-gray-300 w-full max-w-xl p-4 pt-12 rounded-t-xl mx-auto overflow-hidden md:pt-4'>
-        {username && <UsernamePanel username={username} className='absolute top-2 left-4 shadow-none bg-white/40 md:hidden' compact />}
+        <UsernamePanel username={username || 'Player 1'} className='absolute top-2 left-4 shadow-none bg-white/40 md:hidden' compact />
         <Card value={CardValues.ROCK} onClick={onCardSelect} isActive={!isRoundEnded} selected={currentChoice === CardValues.ROCK} />
         <Card value={CardValues.PAPER} onClick={onCardSelect} isActive={!isRoundEnded} selected={currentChoice === CardValues.PAPER} />
         <Card value={CardValues.SCISSORS} onClick={onCardSelect} isActive={!isRoundEnded} selected={currentChoice === CardValues.SCISSORS} />
