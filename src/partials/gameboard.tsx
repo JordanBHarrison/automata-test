@@ -129,16 +129,16 @@ type MidBoardProps = {
 
 const MidBoard = ({ playerChoice, cpuChoice, isRoundEnded, startNextRound, currentRoundWinner }: MidBoardProps) => {
   let promptCopy
-  let adjective
+  let verb
 
   switch (currentRoundWinner) {
     case 'player':
-      adjective = WINNING_COMBOS[playerChoice!][cpuChoice!];
-      promptCopy = `${playerChoice!.toUpperCase()} ${adjective} ${cpuChoice!.toUpperCase()}`;
+      verb = WINNING_COMBOS[playerChoice!][cpuChoice!];
+      promptCopy = `${playerChoice!.toUpperCase()} ${verb} ${cpuChoice!.toUpperCase()}`;
       break;
     case 'cpu':
-      adjective = WINNING_COMBOS[cpuChoice!][playerChoice!];
-      promptCopy = `${cpuChoice!.toUpperCase()} ${adjective} ${playerChoice!.toUpperCase()}`;
+      verb = WINNING_COMBOS[cpuChoice!][playerChoice!];
+      promptCopy = `${cpuChoice!.toUpperCase()} ${verb} ${playerChoice!.toUpperCase()}`;
       break;
     case 'draw':
       promptCopy = 'It\'s a draw';
